@@ -36,21 +36,15 @@ setup(
     install_requires=dependencies,
 
     classifiers=[
-
         'Development Status :: 5 - Production/Stable',
-
         'Environment :: Console',
-
         'Intended Audience :: Other Audience',
         'Topic :: Communications :: Chat',
-
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
-
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3 :: Only',
-
         'Typing :: Typed',
     ],
 

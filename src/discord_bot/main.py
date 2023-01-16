@@ -3,31 +3,23 @@
 import discord
 from discord.ext import commands
 
-# setup of logging and env-vars
-# logging must be initialized before environment, to enable logging in environment
 from .log_setup import logger, formatter, console_logger
 from .environment import PREFIX, TOKEN, ACTIVITY_NAME
 
 """
-This bot is based on a template by nonchris
-https://github.com/nonchris/discord-bot
+PriceBot
 """
 
 
 class MyBot(commands.Bot):
     """!
-    Custom bot-class implementing useful defaults for loading cogs and pushing slash-commands
-    This implementation is object-oriented.
-    You can still overwrite / use the 'classic' decorator method like:
-
-    @bot.event
-    async def on_ready():
-        ...
-
+    PriceBot Class
     """
-
-    def __init__(self, intents: discord.Intents = discord.Intents.all()):
-        """ Initialize bot with intents and init super """
+    
+    def __init__(self, intents: discord.Intents = discord.Intents.default()):
+        intents = discord.Intents.default()
+        intents.members = True
+        intents.message_content = True
         super().__init__(command_prefix=self._prefix_callable, intents=intents)
 
     async def setup_hook(self):
@@ -37,18 +29,11 @@ class MyBot(commands.Bot):
         but before it has connected to the Websocket (quoted from d.py docs)
         """
 
-    # login message
     async def on_ready(self):
-        """!
-        Function called when the bot is ready. Emits the '[Bot] has connected' message
-        Loads the extensions
-        """
-
-        # LOADING Extensions
-        # this is done in on_ready() so that cogs can fetch data from discord when they're loaded
-        bot.remove_command('help')  # unload default help message
-        # TODO: Register your extensions here
+        bot.remove_command('help')
+        
         initial_extensions = [
+            '.cogs.crypto',
             '.cogs.misc',
             '.cogs.help'
         ]
@@ -56,39 +41,26 @@ class MyBot(commands.Bot):
         for extension in initial_extensions:
             await bot.load_extension(extension, package=__package__)
 
-        # Walk all guilds, report connected guilds and push commands to guilds
+        #push commands to guilds
         member_count = 0
         guild_string = ""
         for g in bot.guilds:
             guild_string += f"{g.name} - {g.id} - Members: {g.member_count}\n"
             member_count += g.member_count
-
-            # PUSHING Commands
-            # copy all commands to all guilds one after an other
-            # this is inefficient, but a fast way to push new commands to all guilds
             await self.__sync_commands_to_guild(g)
 
         logger.info(f"\n---\n"
                     f"Bot '{bot.user.name}' has connected, active on {len(self.guilds)} guilds:\n{guild_string}"
                     f"---\n")
 
-        # set the status of the bot
         await self.change_presence(
             activity=discord.Activity(type=discord.ActivityType.watching, name=ACTIVITY_NAME))
 
     async def on_guild_join(self, guild: discord.Guild):
-        """!
-        Function called when bot is invited onto a new server
-        """
         logger.info(f"Bot joined guild: '{guild.name}'")
-        # try to push slash commands to new server
         await self.__sync_commands_to_guild(guild)
 
     async def __sync_commands_to_guild(self, guild: discord.Guild):
-        """!
-        Function to push all commands to a guild
-        Doing this for all guilds on startup is is inefficient, but a fast way to push new commands to all guilds
-        """
         try:
             self.tree.copy_global_to(guild=guild)
             await bot.tree.sync(guild=guild)
@@ -96,20 +68,12 @@ class MyBot(commands.Bot):
         except discord.errors.Forbidden:
             logger.warning(f"Don't have the permissions to push slash commands to: '{guild.name}'")
 
-    # inspired by https://github.com/Rapptz/RoboDanny
-    # This function will be evaluated for each message
-    # you can define specific behaviours for different messages or guilds, like custom prefixes for a guild etc...
     @staticmethod
     def _prefix_callable(_bot, msg: discord.Message):
-        """!
-        Function that evaluates whether a (chat)-command was triggered by a message
-        Inspired by https://github.com/Rapptz/RoboDanny
-        """
+
         user_id = _bot.user.id
-        # way discord expresses mentions
-        # mobile and desktop have a different syntax how mentions are sent, so we handle both
         prefixes = [f'<@!{user_id}> ', f'<@{user_id}> ']
-        if msg.guild is None:  # we're in DMs, using default prefix
+        if msg.guild is None:
             prefixes.append(PREFIX)
             return prefixes
 
